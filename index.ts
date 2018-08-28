@@ -5,8 +5,6 @@ import { Parser, Handler } from 'htmlparser2';
 import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace } from './elements';
 import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
 
-// TODO: config option
-const htmlExtensions: string[] = ['.htm', '.html'];
 const startsWithHtmlTag: RegExp = /^\s*</;
 
 const visitorKeys: SourceCode.VisitorKeys = {
@@ -21,13 +19,21 @@ const visitorKeys: SourceCode.VisitorKeys = {
 
 function isHtmlFile(code: string, options: any): boolean {
     const filePath: string = (options.filePath as string | undefined) || "unknown.js";
-    return htmlExtensions.indexOf(path.extname(filePath)) != -1 || startsWithHtmlTag.test(code);
+    return options.htmlFileExtensions.indexOf(path.extname(filePath)) != -1 || startsWithHtmlTag.test(code);
 }
 
 export function parseForESLint(code: string, options: any): ESLintHtmlParseResult {
+    options = Object.assign({
+        htmlFileExtensions: ['.htm', '.html'],
+        parser: 'espree',
+        comment: true,
+        loc: true,
+        range: true,
+        tokens: true
+    }, options || {});
+
     if (!isHtmlFile(code, options)) {
-        // TODO: config option
-        let fallbackParser: any = require('espree');
+        let fallbackParser: any = require(options.parser);
 
         if (typeof fallbackParser.parseForESLint == 'function') {
             return fallbackParser.parseForESLint(code, options);
