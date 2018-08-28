@@ -7,6 +7,7 @@ export type HTMLTokenType =
     | 'HTMLText'
     | 'HTMLWhitespace'
     | 'HTMLElement'
+    | 'HTMLComment'
     | 'Program'
 
 export interface ESLintHTMLParserToken {
@@ -43,11 +44,17 @@ export interface HTMLWhitespace extends ESLintHTMLParserToken {
     parent: HTMLElement;
 }
 
+export interface HTMLComment extends ESLintHTMLParserToken {
+    type: 'HTMLComment';
+    parent: HTMLElement;
+    text: string;
+}
+
 export interface HTMLElement extends ESLintHTMLParserToken {
     comments: string[];
     type: 'HTMLElement';
     tagName: string;
     parent?: HTMLElement;
     attributes?: HTMLAttribute[];
-    children?: (HTMLElement | HTMLText | HTMLWhitespace)[];
+    children?: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment)[];
 }

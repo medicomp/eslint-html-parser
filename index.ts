@@ -2,19 +2,20 @@
 import * as path from 'path';
 import { ScopeManager, Scope } from 'eslint-scope';
 import { Parser, Handler } from 'htmlparser2';
-import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace } from './elements';
+import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace, HTMLComment } from './elements';
 import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
 
 const startsWithHtmlTag: RegExp = /^\s*</;
 
 const visitorKeys: SourceCode.VisitorKeys = {
-    "Program": ["root"],
-    "HTMLAttribute": ["attributeName", "attributeValue"],
-    "HTMLAttributeName": [],
-    "HTMLAttributeValue": [],
-    "HTMLElement": ["children"],
-    "HTMLText": [],
-    "HTMLWhitespace": []
+    'Program': ['root'],
+    'HTMLAttribute': ['attributeName', 'attributeValue'],
+    'HTMLAttributeName': [],
+    'HTMLAttributeValue': [],
+    'HTMLElement': ['children'],
+    'HTMLText': [],
+    'HTMLWhitespace': [],
+    'HTMLComment': []
 };
 
 function isHtmlFile(code: string, options: any): boolean {
@@ -274,6 +275,30 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
 
                 tokens.push(trailingWhitespaceToken);
             }
+        },
+
+        oncomment: (text: string) => {
+            let comment: HTMLComment = {
+                type: 'HTMLComment',
+                parent: currentElement,
+                text: text,
+                value: code.substr(htmlParser.startIndex, htmlParser.endIndex - htmlParser.startIndex + 1),
+                range: [htmlParser.startIndex, htmlParser.endIndex + 1],
+                loc: {
+                    start: getLineAndColumn(htmlParser.startIndex),
+                    end: getLineAndColumn(htmlParser.endIndex + 1)
+                }
+            }
+            
+            if (currentElement) {
+                if (!currentElement.children) {
+                    currentElement.children = [];
+                }
+
+                currentElement.children.push(comment);
+            }
+
+            tokens.push(comment);
         }
     }
     
