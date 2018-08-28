@@ -1,7 +1,7 @@
 ﻿import { AST, SourceCode } from 'eslint';
 import * as path from 'path';
 import { ScopeManager, Scope } from 'eslint-scope';
-import { Parser } from 'htmlparser2';
+import { Parser, Handler } from 'htmlparser2';
 import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace } from './elements';
 import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
 
@@ -93,69 +93,69 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
     let currentElement: HTMLElement = null;
     let currentAttribute: HTMLAttribute = null;
 
-    let parseHandler: any = {
-        onattribname: (name: string) => {
-            let attribute: HTMLAttribute = {
-                type: 'HTMLAttribute',
-                range: [untypedHtmlParser._tokenizer._sectionStart, -1],
-                parent: currentElement,
-                attributeName: null,
-                attributeValue: null,
-                value: null,
-                loc: {
-                    start: getLineAndColumn(untypedHtmlParser._tokenizer._sectionStart),
-                    end: null
-                }
-            };
+    let onattribdata: (value: string) => void = (value: string) => {
+        let startIndex: number = htmlParser._tokenizer._sectionStart;
 
-            attribute.attributeName = {
-                type: 'HTMLAttributeName',
-                value: name,
-                parent: attribute,
-                range: [attribute.range[0], attribute.range[0] + name.length],
-                loc: {
-                    start: getLineAndColumn(attribute.range[0]),
-                    end: getLineAndColumn(attribute.range[0] + name.length)
-                }
-            };
-
-            currentAttribute = attribute;
-
-            if (!currentElement.attributes) {
-                currentElement.attributes = [];
+        currentAttribute.attributeValue = {
+            type: 'HTMLAttributeValue',
+            value: value,
+            parent: currentAttribute,
+            range: [startIndex, startIndex + value.length],
+            loc: {
+                start: getLineAndColumn(startIndex),
+                end: getLineAndColumn(startIndex + value.length)
             }
+        };
 
-            currentElement.attributes.push(attribute);
+        currentAttribute.range[1] = startIndex + value.length + 1;
+        currentAttribute.value = code.substr(currentAttribute.range[0], currentAttribute.range[1] - currentAttribute.range[0])
+        currentAttribute.loc.end = getLineAndColumn(currentAttribute.range[1]);
 
-            tokens.push(attribute);
-            tokens.push(attribute.attributeName);
-        },
+        tokens.push(currentAttribute.attributeValue);
+    }
 
-        onattribdata: (value: string) => {
-            let startIndex: number = untypedHtmlParser._tokenizer._sectionStart;
+    let onattribname: (name: string) => void = (name: string) => {
+        let attribute: HTMLAttribute = {
+            type: 'HTMLAttribute',
+            range: [htmlParser._tokenizer._sectionStart, -1],
+            parent: currentElement,
+            attributeName: null,
+            attributeValue: null,
+            value: null,
+            loc: {
+                start: getLineAndColumn(htmlParser._tokenizer._sectionStart),
+                end: null
+            }
+        };
 
-            currentAttribute.attributeValue = {
-                type: 'HTMLAttributeValue',
-                value: value,
-                parent: currentAttribute,
-                range: [startIndex, startIndex + value.length],
-                loc: {
-                    start: getLineAndColumn(startIndex),
-                    end: getLineAndColumn(startIndex + value.length)
-                }
-            };
+        attribute.attributeName = {
+            type: 'HTMLAttributeName',
+            value: name,
+            parent: attribute,
+            range: [attribute.range[0], attribute.range[0] + name.length],
+            loc: {
+                start: getLineAndColumn(attribute.range[0]),
+                end: getLineAndColumn(attribute.range[0] + name.length)
+            }
+        };
 
-            currentAttribute.range[1] = startIndex + value.length + 1;
-            currentAttribute.value = code.substr(currentAttribute.range[0], currentAttribute.range[1] - currentAttribute.range[0])
-            currentAttribute.loc.end = getLineAndColumn(currentAttribute.range[1]);
+        currentAttribute = attribute;
 
-            tokens.push(currentAttribute.attributeValue);
-        },
+        if (!currentElement.attributes) {
+            currentElement.attributes = [];
+        }
 
-        onopentag: (name: string) => {
-            currentElement.range = [(htmlParser as any).startIndex, -1];
+        currentElement.attributes.push(attribute);
+
+        tokens.push(attribute);
+        tokens.push(attribute.attributeName);
+    };
+
+    let parseHandler: Handler = {
+        onopentagend: () => {
+            currentElement.range = [htmlParser.startIndex, -1];
             currentElement.loc = {
-                start: getLineAndColumn((htmlParser as any).startIndex),
+                start: getLineAndColumn(htmlParser.startIndex),
                 end: null
             };
         },
@@ -187,9 +187,9 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
             tokens.push(element);
         },
 
-        onclosetag: (text: string) => {
-            currentElement.range[1] = (htmlParser as any).endIndex + 1;
-            currentElement.loc.end = getLineAndColumn((htmlParser as any).endIndex + 1);
+        onclosetag: () => {
+            currentElement.range[1] = htmlParser.endIndex + 1;
+            currentElement.loc.end = getLineAndColumn(htmlParser.endIndex + 1);
             currentElement.value = code.substr(currentElement.range[0], currentElement.range[1] - currentElement.range[0]);
 
             currentElement = currentElement.parent;
@@ -205,10 +205,10 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
                     type: 'HTMLWhitespace',
                     parent: currentElement,
                     value: leadingWhitespace,
-                    range: [untypedHtmlParser.startIndex, untypedHtmlParser.startIndex + leadingWhitespace.length],
+                    range: [htmlParser.startIndex, htmlParser.startIndex + leadingWhitespace.length],
                     loc: {
-                        start: getLineAndColumn(untypedHtmlParser.startIndex),
-                        end: getLineAndColumn(untypedHtmlParser.startIndex + leadingWhitespace.length)
+                        start: getLineAndColumn(htmlParser.startIndex),
+                        end: getLineAndColumn(htmlParser.startIndex + leadingWhitespace.length)
                     }
                 }
 
@@ -228,10 +228,10 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
                     type: 'HTMLText',
                     parent: currentElement,
                     value: actualText,
-                    range: [untypedHtmlParser.startIndex + leadingWhitespace.length, untypedHtmlParser.startIndex + leadingWhitespace.length + actualText.length],
+                    range: [htmlParser.startIndex + leadingWhitespace.length, htmlParser.startIndex + leadingWhitespace.length + actualText.length],
                     loc: {
-                        start: getLineAndColumn(untypedHtmlParser.startIndex + leadingWhitespace.length),
-                        end: getLineAndColumn(untypedHtmlParser.startIndex + leadingWhitespace.length + actualText.length)
+                        start: getLineAndColumn(htmlParser.startIndex + leadingWhitespace.length),
+                        end: getLineAndColumn(htmlParser.startIndex + leadingWhitespace.length + actualText.length)
                     }
                 };
 
@@ -251,10 +251,10 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
                     type: 'HTMLWhitespace',
                     parent: currentElement,
                     value: trailingWhitespace,
-                    range: [untypedHtmlParser.startIndex + leadingWhitespace.length + actualText.length, untypedHtmlParser.endIndex],
+                    range: [htmlParser.startIndex + leadingWhitespace.length + actualText.length, htmlParser.endIndex],
                     loc: {
-                        start: untypedHtmlParser.startIndex + leadingWhitespace.length + actualText.length,
-                        end: getLineAndColumn(untypedHtmlParser.endIndex)
+                        start: getLineAndColumn(htmlParser.startIndex + leadingWhitespace.length + actualText.length),
+                        end: getLineAndColumn(htmlParser.endIndex)
                     }
                 }
 
@@ -270,20 +270,19 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
             }
         }
     }
-
+    
     let htmlParser: Parser = new Parser(parseHandler);
-    let untypedHtmlParser: any = htmlParser as any;
 
-    let originalOnattribname: Function = untypedHtmlParser.onattribname;
-    untypedHtmlParser.onattribname = function (name) {
+    let originalOnattribname: Function = htmlParser.onattribname;
+    htmlParser.onattribname = function (name) {
         originalOnattribname.apply(this, arguments);
-        parseHandler.onattribname(name);
+        onattribname(name);
     };
 
-    let originalOnattribdata: Function = untypedHtmlParser.onattribdata;
-    untypedHtmlParser.onattribdata = function (value) {
+    let originalOnattribdata: Function = htmlParser.onattribdata;
+    htmlParser.onattribdata = function (value) {
         originalOnattribdata.apply(this, arguments);
-        parseHandler.onattribdata(value);
+        onattribdata(value);
     };
 
     htmlParser.parseComplete(code);
@@ -298,8 +297,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         value: code.substr(root.range[0], root.range[1] - root.range[0])
     };
 
-    let scopeManager: ScopeManager = new ScopeManager({
-    });
+    let scopeManager: ScopeManager = new ScopeManager({});
     let globalScope: Scope = new Scope(scopeManager, 'module', null, syntaxTree, false);
 
     let result: ESLintHtmlParseResult = {
