@@ -152,7 +152,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
     };
 
     let parseHandler: Handler = {
-        onopentagend: () => {
+        onopentag: () => {
             currentElement.range = [htmlParser.startIndex, -1];
             currentElement.loc = {
                 start: getLineAndColumn(htmlParser.startIndex),
