@@ -1,6 +1,6 @@
 # eslint-html-parser
 
-Custom ESLint parser for HTML files that falls back to using [espree](https://github.com/eslint/espree) or another JavaScript parser for `.js` and `.jsx` files.
+Custom ESLint parser for HTML files that falls back to using [espree](https://github.com/eslint/espree) or another JavaScript parser for `.js` and `.jsx` files and for `<script>` tags within the HTML.
 
 ## Installation
 
@@ -47,7 +47,7 @@ Within your `.eslintrc.*` file, the `parserOptions` property supports the same o
 }
 ```
 
-The only additional option under `parserOptions` is `parser`, which specifies the JavaScript parser that `eslint-html-parser` will fall back to in order to parse JavaScript files.  This option defaults to `espree`.
+The only additional option under `parserOptions` is `parser`, which specifies the JavaScript parser that `eslint-html-parser` will fall back to in order to parse JavaScript.  This option defaults to `espree`.
 
 ## Usage for custom rules/plugins
 
@@ -87,3 +87,5 @@ HTML files are parsed into an AST, which can be traversed, examined, and linted 
 - HTMLProcessingInstruction
   - target: string
   - data: string
+
+**Note:** The `children` property for `HTMLElement` nodes for `<script>` tags will contain the AST resulting from parsing the script's text.

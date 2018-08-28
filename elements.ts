@@ -1,4 +1,5 @@
-﻿import { AST } from "eslint";
+﻿import { AST } from 'eslint';
+import { Statement, ModuleDeclaration } from 'estree';
 
 export type HTMLTokenType = 
     | 'HTMLAttributeName'
@@ -63,5 +64,5 @@ export interface HTMLElement extends ESLintHTMLParserToken {
     tagName: string;
     parent?: HTMLElement;
     attributes?: HTMLAttribute[];
-    children?: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment)[];
+    children?: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment | Statement | ModuleDeclaration)[];
 }

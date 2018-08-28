@@ -7,21 +7,24 @@ import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
 
 const startsWithHtmlTag: RegExp = /^\s*</;
 
-const visitorKeys: SourceCode.VisitorKeys = {
-    'Program': ['root'],
-    'HTMLAttribute': ['attributeName', 'attributeValue'],
-    'HTMLAttributeName': [],
-    'HTMLAttributeValue': [],
-    'HTMLElement': ['children'],
-    'HTMLText': [],
-    'HTMLWhitespace': [],
-    'HTMLComment': [],
-    'HTMLProcessingInstruction': []
-};
-
 function isHtmlFile(code: string, options: any): boolean {
     const filePath: string = (options.filePath as string | undefined) || "unknown.js";
     return options.htmlFileExtensions.indexOf(path.extname(filePath)) != -1 || startsWithHtmlTag.test(code);
+}
+
+function parseScript(code: string, options: any): ESLintHtmlParseResult {
+    let fallbackParser: any = require(options.parser);
+
+    if (typeof fallbackParser.parseForESLint == 'function') {
+        return fallbackParser.parseForESLint(code, options);
+    }
+
+    else {
+        return {
+            ast: fallbackParser.parse(code, options),
+            visitorKeys: fallbackParser.VisitorKeys
+        };
+    }
 }
 
 export function parseForESLint(code: string, options: any): ESLintHtmlParseResult {
@@ -35,17 +38,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
     }, options || {});
 
     if (!isHtmlFile(code, options)) {
-        let fallbackParser: any = require(options.parser);
-
-        if (typeof fallbackParser.parseForESLint == 'function') {
-            return fallbackParser.parseForESLint(code, options);
-        }
-
-        else {
-            return {
-                ast: fallbackParser.parse(code, options)
-            };
-        }
+        return parseScript(code, options);
     }
 
     let lineBreakIndices: number[] = [-1];
@@ -95,6 +88,18 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
             column: column
         };
     }
+
+    let visitorKeys: SourceCode.VisitorKeys = {
+        'Program': ['root'],
+        'HTMLAttribute': ['attributeName', 'attributeValue'],
+        'HTMLAttributeName': [],
+        'HTMLAttributeValue': [],
+        'HTMLElement': ['children'],
+        'HTMLText': [],
+        'HTMLWhitespace': [],
+        'HTMLComment': [],
+        'HTMLProcessingInstruction': []
+    };
 
     let tokens: ESLintHTMLParserToken[] = [];
     let root: HTMLElement = null;
@@ -204,6 +209,64 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         },
 
         ontext: (text: string) => {
+            if (currentElement && currentElement.tagName.toLowerCase() == 'script') {
+                let scriptParseResult: ESLintHtmlParseResult = parseScript(text, options);
+
+                if (scriptParseResult.ast) {
+                    let scriptProgram: AST.Program = scriptParseResult.ast as AST.Program;
+                    
+                    if (scriptProgram.tokens) {
+                        let textStartLoc: { line: number, column: number } = getLineAndColumn(htmlParser.startIndex);
+
+                        for (let token of scriptProgram.tokens) {
+                            if (token.range) {
+                                token.range[0] += htmlParser.startIndex;
+                                token.range[1] += htmlParser.startIndex;
+                            }
+
+                            if (token.loc) {
+                                if (token.loc.start.line == 1) {
+                                    token.loc.start.column += textStartLoc.column;
+                                }
+
+                                if (token.loc.end.line == 1) {
+                                    token.loc.end.column += textStartLoc.column;
+                                }
+
+                                token.loc.start.line += textStartLoc.line - 1;
+                                token.loc.end.line += textStartLoc.line - 1;
+                            }
+                        }
+                    }
+
+                    if (scriptProgram.body) {
+                        if (!currentElement.children) {
+                            currentElement.children = [];
+                        }
+
+                        currentElement.children.push.apply(currentElement.children, scriptProgram.body);
+                    }
+
+                    if (scriptParseResult.visitorKeys) {
+                        for (let visitorKey in scriptParseResult.visitorKeys) {
+                            if (!visitorKeys[visitorKey]) {
+                                visitorKeys[visitorKey] = scriptParseResult.visitorKeys[visitorKey];
+                            }
+
+                            else {
+                                for (let childKey of scriptParseResult.visitorKeys[visitorKey]) {
+                                    if (visitorKeys[visitorKey].indexOf(childKey) == -1) {
+                                        visitorKeys[visitorKey].push(childKey);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return;
+            }
+
             let leadingWhitespace: string = (text.match(/^\s+/) || [''])[0];
             let trailingWhitespace: string = leadingWhitespace.length == text.length ? '' : (text.match(/\s+$/) || [''])[0];
             let actualText: string = leadingWhitespace.length == text.length ? '' : text.substr(leadingWhitespace.length, text.length - leadingWhitespace.length - trailingWhitespace.length);
