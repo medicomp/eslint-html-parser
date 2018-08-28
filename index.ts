@@ -2,7 +2,7 @@
 import * as path from 'path';
 import { ScopeManager, Scope } from 'eslint-scope';
 import { Parser, Handler } from 'htmlparser2';
-import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace, HTMLComment } from './elements';
+import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace, HTMLComment, HTMLProcessingInstruction } from './elements';
 import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
 
 const startsWithHtmlTag: RegExp = /^\s*</;
@@ -15,7 +15,8 @@ const visitorKeys: SourceCode.VisitorKeys = {
     'HTMLElement': ['children'],
     'HTMLText': [],
     'HTMLWhitespace': [],
-    'HTMLComment': []
+    'HTMLComment': [],
+    'HTMLProcessingInstruction': []
 };
 
 function isHtmlFile(code: string, options: any): boolean {
@@ -299,6 +300,24 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
             }
 
             tokens.push(comment);
+        },
+
+        onprocessinginstruction: (name: string, entireText: string) => {
+            let data: string = entireText.substr(name.length).replace(/^\s+/, '');
+
+            let processingInstruction: HTMLProcessingInstruction = {
+                type: 'HTMLProcessingInstruction',
+                target: entireText.substr(1, name.length - 1),
+                data: data,
+                value: code.substr(htmlParser.startIndex, entireText.length + 2),
+                range: [htmlParser.startIndex, htmlParser.startIndex + entireText.length + 2],
+                loc: {
+                    start: getLineAndColumn(htmlParser.startIndex),
+                    end: getLineAndColumn(htmlParser.endIndex + 1)
+                }
+            }
+
+            tokens.push(processingInstruction);
         }
     }
     
