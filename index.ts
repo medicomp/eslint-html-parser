@@ -297,7 +297,12 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         value: code.substr(root.range[0], root.range[1] - root.range[0])
     };
 
+    // Can't augment the type declarations to include constructors, so we're
+    // stuck with ignoring these two instantiations
+
+    // @ts-ignore
     let scopeManager: ScopeManager = new ScopeManager({});
+    // @ts-ignore
     let globalScope: Scope = new Scope(scopeManager, 'module', null, syntaxTree, false);
 
     let result: ESLintHtmlParseResult = {
