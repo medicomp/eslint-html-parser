@@ -94,7 +94,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         'HTMLAttribute': ['attributeName', 'attributeValue'],
         'HTMLAttributeName': [],
         'HTMLAttributeValue': [],
-        'HTMLElement': ['children'],
+        'HTMLElement': ['children', 'attributes'],
         'HTMLText': [],
         'HTMLWhitespace': [],
         'HTMLComment': [],
