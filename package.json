@@ -11,6 +11,7 @@
   "dependencies": {
     "eslint": "^5.3.0",
     "espree": "^4.0.0",
+    "estraverse": "^4.2.0",
     "htmlparser2": "^3.9.2"
   },
   "devDependencies": {
