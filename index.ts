@@ -4,6 +4,7 @@ import { ScopeManager, Scope } from 'eslint-scope';
 import { Parser, Handler } from 'htmlparser2';
 import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace, HTMLComment, HTMLProcessingInstruction } from './elements';
 import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
+import { Estraverse } from 'estraverse';
 
 const startsWithHtmlTag: RegExp = /^\s*</;
 
@@ -59,7 +60,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
 
     function getLineAndColumn(index: number) {
         let lineNumber: number = 0;
-        
+
         for (; lineNumber < lineBreakIndices.length; lineNumber++) {
             if (index < lineBreakIndices[lineNumber]) {
                 break;
@@ -105,6 +106,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
     let root: HTMLElement = null;
     let currentElement: HTMLElement = null;
     let currentAttribute: HTMLAttribute = null;
+    let tmpText: String = "";
 
     let onattribdata: (value: string) => void = (value: string) => {
         let startIndex: number = htmlParser._tokenizer._sectionStart;
@@ -213,8 +215,29 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
                 let scriptParseResult: ESLintHtmlParseResult = parseScript(text, options);
 
                 if (scriptParseResult.ast) {
+                    //fix script contains "<" bug
+                    tmpText += text;
+                    if (code.substr(htmlParser.endIndex + 1, 9) !== "</script>") {
+                        return;
+                    } else {
+                        htmlParser.startIndex = htmlParser.endIndex - text.length;
+                    }
                     let scriptProgram: AST.Program = scriptParseResult.ast as AST.Program;
-                    
+                    //fix the node range index
+                    Estraverse.traverse(scriptProgram, {
+                        enter: function (node, parent) {
+                            if (node.range) {
+                                node.range[0] += htmlParser.startIndex;
+                                node.range[1] += htmlParser.startIndex;
+                            }
+                            if (node.start) {
+                                node.start = node.range[0];
+                            }
+                            if (node.end) {
+                                node.start = node.range[1];
+                            }
+                        }
+                    });
                     if (scriptProgram.tokens) {
                         let textStartLoc: { line: number, column: number } = getLineAndColumn(htmlParser.startIndex);
 
@@ -353,7 +376,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
                     end: getLineAndColumn(htmlParser.endIndex + 1)
                 }
             }
-            
+
             if (currentElement) {
                 if (!currentElement.children) {
                     currentElement.children = [];
@@ -383,7 +406,7 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
             tokens.push(processingInstruction);
         }
     }
-    
+
     let htmlParser: Parser = new Parser(parseHandler);
 
     let originalOnattribname: Function = htmlParser.onattribname;
