@@ -1,5 +1,6 @@
-﻿import { AST } from 'eslint';
+﻿import { AST, SourceCode } from 'eslint';
 import { Statement, ModuleDeclaration } from 'estree';
+import { ScopeManager } from 'eslint-scope';
 
 export type HTMLTokenType = 
     | 'HTMLAttributeName'
@@ -66,3 +67,21 @@ export interface HTMLElement extends ESLintHTMLParserToken {
     attributes?: HTMLAttribute[];
     children?: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment | Statement | ModuleDeclaration)[];
 }
+
+export interface HTMLSyntaxTree extends ESLintHTMLParserToken {
+    comments: any[];
+    tokens: ESLintHTMLParserToken[];
+    root: HTMLElement;
+    type: 'Program'
+}
+
+export interface ESLintHtmlParseResult {
+    ast: HTMLSyntaxTree | AST.Program;
+    services?: Object;
+    scopeManager?: ScopeManager;
+    visitorKeys?: SourceCode.VisitorKeys;
+}
+
+export function parseForESLint(code: string, options?: any): ESLintHtmlParseResult;
+
+export function parse(code: string, options: any): HTMLSyntaxTree | AST.Program;

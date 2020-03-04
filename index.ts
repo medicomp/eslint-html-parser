@@ -1,9 +1,8 @@
 ﻿import { AST, SourceCode } from 'eslint';
 import * as path from 'path';
 import { ScopeManager, Scope } from 'eslint-scope';
-import { Parser, Handler } from 'htmlparser2';
-import { HTMLElement, HTMLAttribute, HTMLText, ESLintHTMLParserToken, HTMLWhitespace, HTMLComment, HTMLProcessingInstruction } from './elements';
-import { ESLintHtmlParseResult, HTMLSyntaxTree } from './parsing';
+import { Parser, DomHandler } from 'htmlparser2';
+import { ESLintHTMLParserToken, HTMLElement, HTMLAttribute, HTMLWhitespace, HTMLText, HTMLComment, HTMLProcessingInstruction, ESLintHtmlParseResult, HTMLSyntaxTree } from './types';
 
 const startsWithHtmlTag: RegExp = /^\s*</;
 
@@ -27,7 +26,7 @@ function parseScript(code: string, options: any): ESLintHtmlParseResult {
     }
 }
 
-export function parseForESLint(code: string, options: any): ESLintHtmlParseResult {
+export function parseForESLint(code: string, options?: any): ESLintHtmlParseResult {
     options = Object.assign({
         htmlFileExtensions: ['.htm', '.html'],
         parser: 'espree',
@@ -127,6 +126,35 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         tokens.push(currentAttribute.attributeValue);
     }
 
+    let onopentagname: (name: string) => void = (name: string) => {
+        let element: HTMLElement = {
+            comments: [],
+            type: 'HTMLElement',
+            tagName: name,
+            parent: currentElement,
+            value: null,
+            range: [htmlParser.startIndex, -1],
+            loc: {
+                start: getLineAndColumn(htmlParser.startIndex),
+                end: null
+            }
+        };
+
+        if (!root) {
+            root = element;
+        }
+
+        if (currentElement) {
+            if (!currentElement.children) {
+                currentElement.children = [];
+            }
+
+            currentElement.children.push(element);
+        }
+
+        currentElement = element;
+    }
+
     let onattribname: (name: string) => void = (name: string) => {
         let attribute: HTMLAttribute = {
             type: 'HTMLAttribute',
@@ -164,40 +192,9 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         tokens.push(attribute.attributeName);
     };
 
-    let parseHandler: Handler = {
-        onopentag: () => {
-            currentElement.range = [htmlParser.startIndex, -1];
-            currentElement.loc = {
-                start: getLineAndColumn(htmlParser.startIndex),
-                end: null
-            };
-        },
-
-        onopentagname: (name: string) => {
-            let element: HTMLElement = {
-                comments: [],
-                type: 'HTMLElement',
-                tagName: name,
-                parent: currentElement,
-                value: null,
-                range: [-1, -1],
-                loc: null
-            };
-
-            if (!root) {
-                root = element;
-            }
-
-            if (currentElement) {
-                if (!currentElement.children) {
-                    currentElement.children = [];
-                }
-
-                currentElement.children.push(element);
-            }
-
-            currentElement = element;
-            tokens.push(element);
+    let parseHandler: Partial<DomHandler> = {
+        onopentag: (name: string) => {
+            tokens.push(currentElement);
         },
 
         onclosetag: () => {
@@ -397,6 +394,12 @@ export function parseForESLint(code: string, options: any): ESLintHtmlParseResul
         originalOnattribdata.apply(this, arguments);
         onattribdata(value);
     };
+
+    let originalOnopentagname: Function = htmlParser.onopentagname;
+    htmlParser.onopentagname = function (value) {
+        originalOnopentagname.apply(this, arguments);
+        onopentagname(value);
+    }
 
     htmlParser.parseComplete(code);
 

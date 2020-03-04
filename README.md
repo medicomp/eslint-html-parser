@@ -9,7 +9,7 @@ $ npm install --save-dev eslint eslint-html-parser
 ```
 
 - Requires Node.js 6.x or later
-- Requires ESLint 5.x or later
+- Requires ESLint 6.x or later
 
 ## Usage
 
