@@ -197,6 +197,11 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
             tokens.push(currentElement);
         },
 
+        onopentagend: (name: string) => {
+            currentElement.range[0] = htmlParser.startIndex;
+            currentElement.loc.start = getLineAndColumn(htmlParser.startIndex);
+        },
+
         onclosetag: () => {
             currentElement.range[1] = htmlParser.endIndex + 1;
             currentElement.loc.end = getLineAndColumn(htmlParser.endIndex + 1);
