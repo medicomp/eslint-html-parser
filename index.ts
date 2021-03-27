@@ -69,7 +69,7 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
         let tabNumber: number = -1;
 
         while (++tabNumber < tabIndices.length) {
-            if (tabIndices[tabNumber] < lineBreakIndices[lineNumber - 1]) {
+            if (tabIndices[tabNumber] <= lineBreakIndices[lineNumber - 1]) {
                 continue;
             }
 
