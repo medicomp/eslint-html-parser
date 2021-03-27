@@ -193,7 +193,9 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
     };
 
     let parseHandler: Partial<DomHandler> = {
-        onopentag: (name: string) => {
+        onopentag: (name: string) => {   
+            currentElement.range[0] = htmlParser.startIndex
+            currentElement.loc.start = getLineAndColumn(htmlParser.startIndex)
             tokens.push(currentElement);
         },
 
