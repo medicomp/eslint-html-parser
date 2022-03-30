@@ -1,6 +1,6 @@
 {
   "name": "eslint-html-parser",
-  "version": "6.8.1",
+  "version": "6.8.2",
   "description": "Parser for ESLint that parses HTML files into AST structures and falls back to an ECMAScript parser for .js files",
   "repository": "https://github.com/medicomp/eslint-html-parser",
   "license": "MIT",

@@ -137,7 +137,9 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
             loc: {
                 start: getLineAndColumn(htmlParser.startIndex),
                 end: null
-            }
+            },
+            children: [],
+            attributes: []
         };
 
         if (!root) {
@@ -145,10 +147,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
         }
 
         if (currentElement) {
-            if (!currentElement.children) {
-                currentElement.children = [];
-            }
-
             currentElement.children.push(element);
         }
 
@@ -181,11 +179,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
         };
 
         currentAttribute = attribute;
-
-        if (!currentElement.attributes) {
-            currentElement.attributes = [];
-        }
-
         currentElement.attributes.push(attribute);
 
         tokens.push(attribute);
@@ -239,10 +232,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
                     }
 
                     if (scriptProgram.body) {
-                        if (!currentElement.children) {
-                            currentElement.children = [];
-                        }
-
                         currentElement.children.push.apply(currentElement.children, scriptProgram.body);
                     }
 
@@ -283,10 +272,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
                 }
 
                 if (currentElement) {
-                    if (!currentElement.children) {
-                        currentElement.children = [];
-                    }
-
                     currentElement.children.push(leadingWhitespaceToken);
                 }
 
@@ -306,10 +291,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
                 };
 
                 if (currentElement) {
-                    if (!currentElement.children) {
-                        currentElement.children = [];
-                    }
-
                     currentElement.children.push(htmlText);
                 }
 
@@ -329,10 +310,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
                 }
 
                 if (currentElement) {
-                    if (!currentElement.children) {
-                        currentElement.children = [];
-                    }
-
                     currentElement.children.push(trailingWhitespaceToken);
                 }
 
@@ -354,10 +331,6 @@ export function parseForESLint(code: string, options?: any): ESLintHtmlParseResu
             }
             
             if (currentElement) {
-                if (!currentElement.children) {
-                    currentElement.children = [];
-                }
-
                 currentElement.children.push(comment);
             }
 

@@ -64,8 +64,8 @@ export interface HTMLElement extends ESLintHTMLParserToken {
     type: 'HTMLElement';
     tagName: string;
     parent?: HTMLElement;
-    attributes?: HTMLAttribute[];
-    children?: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment | Statement | ModuleDeclaration)[];
+    attributes: HTMLAttribute[];
+    children: (HTMLElement | HTMLText | HTMLWhitespace | HTMLComment | Statement | ModuleDeclaration)[];
 }
 
 export interface HTMLSyntaxTree extends ESLintHTMLParserToken {
